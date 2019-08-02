@@ -1,4 +1,4 @@
-trait AtCollection<T>: IntoIterator
+pub trait AtCollection<T>
 where
     Self: Sized,
 {
@@ -15,6 +15,7 @@ where
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct AtLeastOne<T> {
     raw: Vec<T>,
 }
@@ -40,6 +41,7 @@ impl<T> AtCollection<T> for AtLeastOne<T> {
     }
 }
 
+#[derive(Clone, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct AtLeastTwo<T> {
     raw: Vec<T>,
 }
@@ -66,6 +68,7 @@ impl<T> AtCollection<T> for AtLeastTwo<T> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct AtLeastThree<T> {
     raw: Vec<T>,
 }
@@ -97,8 +100,8 @@ pub struct AtMostOne<T> {
 }
 
 impl<T> AtMostOne<T> {
-    pub fn new(a: T) -> AtMostOne {
-        let raw = !vec[a];
+    pub fn new(a: T) -> AtMostOne<T> {
+        let raw = vec![a];
         AtMostOne { raw }
     }
 }
@@ -118,8 +121,8 @@ pub struct AtMostTwo<T> {
 }
 
 impl<T> AtMostTwo<T> {
-    pub fn new(a: T) -> AtMostTwo {
-        let raw = !vec[a];
+    pub fn new(a: T) -> AtMostTwo<T> {
+        let raw = vec![a];
         AtMostTwo { raw }
     }
 }
@@ -139,8 +142,8 @@ pub struct AtMostThree<T> {
 }
 
 impl<T> AtMostThree<T> {
-    pub fn new(a: T) -> AtMostThree {
-        let raw = !vec[a];
+    pub fn new(a: T) -> AtMostThree<T> {
+        let raw = vec![a];
         AtMostThree { raw }
     }
 }
@@ -181,9 +184,8 @@ mod tests {
     fn for_iter() {
         let alt = AtLeastOne::new(1);
 
-        for i in alt {
+        for i in alt.into_iter() {
             assert_eq!(i, 1);
         }
     }
-
 }
