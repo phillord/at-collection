@@ -1,3 +1,8 @@
+use failure::bail;
+use failure::Error;
+use std::convert::TryFrom;
+use std::ops::Deref;
+
 pub trait AtCollection<T>
 where
     Self: Sized,
@@ -15,83 +20,90 @@ where
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct AtLeastOne<T> {
-    raw: Vec<T>,
+macro_rules! atleast {
+    ($name:ident, $n:literal, $($cons:ident),*) => {
+
+        #[derive(Clone, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+        pub struct $name<T> {
+            raw: Vec<T>,
+        }
+
+        impl<T> $name<T> {
+            pub fn new(
+                $($cons: T),*
+            ) -> $name<T> {
+                $name::new_and($($cons),*, Vec::new())
+            }
+
+            pub fn new_and($($cons: T),*, mut v: Vec<T>) -> $name<T> {
+                let mut raw = vec![$($cons),*];
+                raw.append(&mut v);
+                $name { raw }
+            }
+        }
+
+        impl<T> AtCollection<T> for $name<T> {
+            fn as_slice(&self) -> &[T] {
+                self.raw.as_slice()
+            }
+
+            fn as_vec(self) -> Vec<T> {
+                self.raw
+            }
+        }
+        impl<T> Deref for $name<T> {
+            type Target = [T];
+
+            fn deref(&self) -> &Self::Target {
+                &self.as_slice()
+            }
+        }
+
+        impl<T> TryFrom<Vec<T>> for $name<T> {
+            type Error = Error;
+
+            fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
+                if value.len() < $n {
+                    bail!("$name requires at least $n values")
+                } else {
+                    Ok($name { raw: value })
+                }
+            }
+        }
+
+    };
 }
 
-impl<T> AtLeastOne<T> {
-    pub fn new(a: T) -> AtLeastOne<T> {
-        AtLeastOne::new_and(a, Vec::new())
-    }
+atleast! {AtLeastOne, 1, a}
+atleast! {AtLeastTwo, 2, a, b}
+atleast! {AtLeastThree, 3, a, b, c}
+atleast! {AtLeastFour, 4, a, b, c, d}
 
-    pub fn new_and(a: T, mut v: Vec<T>) -> AtLeastOne<T> {
-        v.insert(0, a);
-        AtLeastOne { raw: v }
-    }
-}
-
-impl<T> AtCollection<T> for AtLeastOne<T> {
-    fn as_slice(&self) -> &[T] {
-        self.raw.as_slice()
-    }
-
-    fn as_vec(self) -> Vec<T> {
-        self.raw
-    }
-}
-
-#[derive(Clone, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
-pub struct AtLeastTwo<T> {
-    raw: Vec<T>,
-}
-
-impl<T> AtLeastTwo<T> {
-    pub fn new(a: T, b: T) -> AtLeastTwo<T> {
-        AtLeastTwo::new_and(a, b, Vec::new())
-    }
-
-    pub fn new_and(a: T, b: T, mut v: Vec<T>) -> AtLeastTwo<T> {
-        v.insert(0, a);
-        v.insert(1, b);
-        AtLeastTwo { raw: v }
-    }
-}
-
-impl<T> AtCollection<T> for AtLeastTwo<T> {
-    fn as_slice(&self) -> &[T] {
-        self.raw.as_slice()
-    }
-
-    fn as_vec(self) -> Vec<T> {
-        self.raw
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct AtLeastThree<T> {
-    raw: Vec<T>,
-}
-
-impl<T> AtLeastThree<T> {
-    pub fn new(a: T, b: T) -> AtLeastThree<T> {
-        AtLeastThree::new_and(a, b, Vec::new())
-    }
-
-    pub fn new_and(a: T, b: T, mut v: Vec<T>) -> AtLeastThree<T> {
-        v.insert(0, a);
-        v.insert(1, b);
-        AtLeastThree { raw: v }
+#[macro_export]
+macro_rules! atl1 {
+    ($($cons:expr),*) => {
+        AtLeastOne::try_from(vec![$($cons),*])
     }
 }
 
-impl<T> AtCollection<T> for AtLeastThree<T> {
-    fn as_slice(&self) -> &[T] {
-        self.raw.as_slice()
+#[macro_export]
+macro_rules! atl2 {
+    ($($cons:expr),*) => {
+        $crate::AtLeastTwo::try_from(vec![$($cons),*])
     }
+}
 
-    fn as_vec(self) -> Vec<T> {
-        self.raw
+#[macro_export]
+macro_rules! atl3 {
+    ($($cons:expr),*) => {
+        AtLeastThree::try_from(vec![$($cons),*])
+    }
+}
+
+#[macro_export]
+macro_rules! atl4 {
+    ($($cons:expr),*) => {
+        AtLeastFour::try_from(vec![$($cons),*])
     }
 }
 
@@ -187,5 +199,42 @@ mod tests {
         for i in alt.into_iter() {
             assert_eq!(i, 1);
         }
+    }
+
+    #[test]
+    fn length() {
+        let alt = AtLeastTwo::new(1, 2);
+
+        assert_eq!(alt.len(), 2);
+    }
+
+    #[test]
+    fn try_from() {
+        assert!(AtLeastThree::try_from(vec![1, 2, 3]).is_ok());
+        assert!(AtLeastThree::try_from(vec![1, 2]).is_err());
+
+        assert!(AtLeastTwo::try_from(vec![1, 2, 3]).is_ok());
+        assert!(AtLeastTwo::try_from(vec![1]).is_err());
+    }
+
+    #[test]
+    fn at_least_one_macro() {
+        let atl1 = atl1![1].unwrap();
+        assert_eq!(1, atl1.len());
+
+        let atl1 = atl1![1, 2, 3].unwrap();
+        assert_eq!(3, atl1.len());
+    }
+
+    #[test]
+    fn at_least_two_macro() {
+        let atl2 = atl2![1];
+        assert!(atl2.is_err());
+    }
+
+    #[test]
+    fn at_least_two_expr() {
+        let atl2 = atl2![1 + 2, 3 + 4];
+        assert_eq!(atl2.unwrap().len(), 2);
     }
 }
