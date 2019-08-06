@@ -1,4 +1,5 @@
 use failure::bail;
+use failure::format_err;
 use failure::Error;
 use std::convert::TryFrom;
 use std::ops::Deref;
@@ -64,7 +65,7 @@ macro_rules! atleast {
 
             fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
                 if value.len() < $n {
-                    bail!("$name requires at least $n values")
+                    bail!("{} requires at least {} values", stringify!($name), stringify!($n))
                 } else {
                     Ok($name { raw: value })
                 }
