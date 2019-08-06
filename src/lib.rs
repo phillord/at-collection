@@ -79,6 +79,19 @@ atleast! {AtLeastTwo, 2, a, b}
 atleast! {AtLeastThree, 3, a, b, c}
 atleast! {AtLeastFour, 4, a, b, c, d}
 
+impl<T> AtLeastOne<T> {
+    pub fn one(&self) -> Result<&T, Error> {
+        match self.raw.len() {
+            1 => Ok(&self.raw[0]),
+            _ => Err(format_err!("AtLeastOne has more than one element")),
+        }
+    }
+
+    pub fn to_one(&self) -> &T {
+        self.one().unwrap()
+    }
+}
+
 #[macro_export]
 macro_rules! atl1 {
     ($($cons:expr),*) => {
@@ -236,5 +249,16 @@ mod tests {
     fn at_least_two_expr() {
         let atl2 = atl2![1 + 2, 3 + 4];
         assert_eq!(atl2.unwrap().len(), 2);
+    }
+
+    #[test]
+    fn to_one() {
+        let ato1 = atl1![1].unwrap();
+        let ato2 = atl1![1, 2].unwrap();
+
+        assert!(ato1.one().is_ok());
+        assert!(ato2.one().is_err());
+
+        assert_eq!(ato1.to_one(), &1);
     }
 }
