@@ -1,6 +1,6 @@
 [package]
 name = "at-collection"
-version = "0.2.1-alpha.0"
+version = "0.3.0"
 authors = ["Phillip Lord <phillip.lord@russet.org.uk>"]
 description = "Collections with minimum or maximum number of entities"
 license = "LGPL-3.0"
